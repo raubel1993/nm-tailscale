@@ -1,0 +1,5 @@
+[VPN Connection]
+name=tailscale
+service=org.freedesktop.NetworkManager.tailscale
+program=/usr/libexec/nm-tailscale-service
+supports-multiple-connections=true
