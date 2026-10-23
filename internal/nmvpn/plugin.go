@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/godbus/dbus/v5"
 	"github.com/godbus/dbus/v5/prop"
@@ -56,9 +58,20 @@ func (n *Notifier) Failure(reason uint32) {
 	_ = n.conn.Emit(Path, Interface+".Failure", reason)
 }
 
+// connectTimeout bounds the synchronous part of Connect (profile lookup) so a
+// hung tailscaled cannot stall NetworkManager's D-Bus call.
+const connectTimeout = 10 * time.Second
+
 // Plugin is the exported D-Bus object.
 type Plugin struct {
+	mu   sync.RWMutex
 	core Core
+}
+
+func (p *Plugin) getCore() Core {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.core
 }
 
 // Export registers the plugin object and its State property on conn. The
@@ -78,7 +91,11 @@ func Export(conn *dbus.Conn) (*Notifier, *Plugin, error) {
 }
 
 // SetCore binds the service that handles the calls.
-func (p *Plugin) SetCore(c Core) { p.core = c }
+func (p *Plugin) SetCore(c Core) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.core = c
+}
 
 // RequestName claims the bus name NM is watching for.
 func RequestName(conn *dbus.Conn, name string) error {
@@ -138,7 +155,9 @@ func (p *Plugin) Connect(conn map[string]map[string]dbus.Variant) *dbus.Error {
 	if err != nil {
 		return dbusError(fmt.Errorf("%w: %v", service.ErrBadArguments, err))
 	}
-	if err := p.core.Connect(context.Background(), set); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
+	defer cancel()
+	if err := p.getCore().Connect(ctx, set); err != nil {
 		return dbusError(err)
 	}
 	return nil
@@ -156,7 +175,7 @@ func (p *Plugin) NeedSecrets(_ map[string]map[string]dbus.Variant) (string, *dbu
 
 // Disconnect handles org.freedesktop.NetworkManager.VPN.Plugin.Disconnect.
 func (p *Plugin) Disconnect() *dbus.Error {
-	if err := p.core.Disconnect(context.Background()); err != nil {
+	if err := p.getCore().Disconnect(context.Background()); err != nil {
 		return dbusError(err)
 	}
 	return nil

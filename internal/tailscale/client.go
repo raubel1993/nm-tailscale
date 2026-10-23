@@ -16,6 +16,7 @@ import (
 	"net/netip"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // DefaultSocket is the tailscaled control socket on Linux.
@@ -77,8 +78,11 @@ func New(socket string) *Client {
 		var d net.Dialer
 		return d.DialContext(ctx, "unix", socket)
 	}
-	return &Client{http: &http.Client{Transport: &http.Transport{DialContext: dial}}}
+	return &Client{http: &http.Client{Transport: &http.Transport{DialContext: dial}, Timeout: requestTimeout}}
 }
+
+// requestTimeout bounds every non-streaming LocalAPI call.
+const requestTimeout = 15 * time.Second
 
 // APIError is a non-2xx response from the LocalAPI.
 type APIError struct {
@@ -173,7 +177,8 @@ func (c *Client) Watch(ctx context.Context) (<-chan Event, error) {
 		return nil, err
 	}
 	// Streaming: no overall timeout; the context ends the watch.
-	resp, err := c.http.Do(req)
+	stream := &http.Client{Transport: c.http.Transport}
+	resp, err := stream.Do(req)
 	if err != nil {
 		return nil, err
 	}

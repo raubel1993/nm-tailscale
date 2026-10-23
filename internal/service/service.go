@@ -103,6 +103,7 @@ type Service struct {
 	released  bool
 	cancel    context.CancelFunc
 	done      chan struct{}
+	stopOnce  sync.Once
 	// Stopped is closed once the connection reached STOPPED.
 	Stopped chan struct{}
 }
@@ -137,11 +138,7 @@ func (s *Service) setState(st uint32) {
 	s.mu.Unlock()
 	s.nm.StateChanged(st)
 	if st == StateStopped {
-		select {
-		case <-s.Stopped:
-		default:
-			close(s.Stopped)
-		}
+		s.stopOnce.Do(func() { close(s.Stopped) })
 	}
 }
 
@@ -217,11 +214,17 @@ func (s *Service) Connect(ctx context.Context, set Settings) error {
 func (s *Service) run(ctx context.Context, profileID, iface string) {
 	defer close(s.done)
 	if err := s.bringUp(ctx, profileID); err != nil {
-		s.fail(FailureConnectFailed, err)
+		if ctx.Err() == nil {
+			s.fail(FailureConnectFailed, err)
+		}
 		return
 	}
 	st, err := s.waitRunning(ctx)
 	if err != nil {
+		if ctx.Err() != nil {
+			// Disconnect cancelled us; it reports STOPPED itself.
+			return
+		}
 		if errors.Is(err, errLoginRequired) {
 			s.fail(FailureLoginFailed, err)
 		} else {

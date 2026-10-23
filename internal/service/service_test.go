@@ -414,3 +414,46 @@ func TestResolveProfileMatchesCaseInsensitive(t *testing.T) {
 		}
 	}
 }
+
+func TestDisconnectWhileStartingEmitsNoFailure(t *testing.T) {
+	b, n, d := newBackend(), newNotifier(), newDeactivator()
+	b.state = tailscale.StateStarting // never reaches Running
+	s := newService(b, n, d)
+	if err := s.Connect(context.Background(), set); err != nil {
+		t.Fatal(err)
+	}
+	n.waitState(t, StateStarting)
+	if err := s.Disconnect(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if len(n.failures) != 0 {
+		t.Fatalf("user-initiated disconnect must not report a failure: %v", n.failures)
+	}
+	stopped := 0
+	for _, st := range n.states {
+		if st == StateStopped {
+			stopped++
+		}
+	}
+	if stopped != 1 {
+		t.Fatalf("expected exactly one STOPPED, states=%v", n.states)
+	}
+}
+
+func TestConcurrentDisconnectDoesNotPanic(t *testing.T) {
+	b, n, d := newBackend(), newNotifier(), newDeactivator()
+	s := newService(b, n, d)
+	if err := s.Connect(context.Background(), set); err != nil {
+		t.Fatal(err)
+	}
+	n.waitState(t, StateStarted)
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() { defer wg.Done(); _ = s.Disconnect(context.Background()) }()
+	}
+	wg.Wait()
+	<-s.Stopped
+}
