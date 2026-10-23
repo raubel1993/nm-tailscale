@@ -17,14 +17,18 @@ Engram mirror: pending (server unavailable this session).
 
 ## Tasks
 
-- [ ] T1 (S2,S3,S4,S5,S6) tailscale LocalAPI client + tests — inline — written, unverified (no Go toolchain)
-- [ ] T2 (S2,S3,S4,S5,S6) service core (connect/disconnect/watch) + tests — inline — written, unverified
-- [ ] T3 (S1,S4) D-Bus plugin adapter + NM deactivator + main — inline — written, unverified
-- [ ] T4 (S7,S8) data files, Makefile, README — inline — written (structural readback only)
-- [ ] T5 `go mod tidy`, `make test`, `make test-dbus`, `make build` — blocked: user must run `sudo dnf install golang`; then commit T1-T4 as work units
+- [x] T1 (S2,S3,S4,S5,S6) tailscale LocalAPI client + tests — inline — 76aeda8 — `go test ./internal/tailscale`: ok
+- [x] T2 (S2,S3,S4,S5,S6) service core (connect/disconnect/watch) + tests — inline — 657d742 — `go test ./internal/service`: ok (after fixing watch loop that ignored ctx cancellation; RED observed as 60 s hang in Disconnect)
+- [x] T3 (S1,S4) D-Bus plugin adapter + NM deactivator + main — inline — a0e51a9 — `dbus-run-session -- go test ./internal/nmvpn`: ok (3 tests)
+- [x] T4 (S7,S8) data files, Makefile, README — inline — 8080c8e — structural readback
+- [x] T5 `go vet`, `go test ./...`, `make build` — ok on go1.26.10; `-race` run pending (background)
+- [x] T6 independent verification (Risk: item 2 root plugin on system bus, item 5 installs) — delegated verifier — no blockers; advisories A2 (double close), A3 (spurious Failure on cancel), A4 (core swap race), A5 (no HTTP timeout) fixed in f5c3361 with regression tests; A1 (send_destination vs .Connection_N) mitigated with send_destination_prefix. `go test -race ./...`: ok.
+- [ ] T7 install (`sudo make install`, `systemctl restart NetworkManager`), create 2 nmcli profiles, Fase 5 scenarios, SELinux check — user approved (L5); sudo needs an interactive password, so the user runs install and NM restart, then the agent continues
 
 ## Log
 
 - L1 (2026-10-23) User: "En esta carpeta crea el proyecto e implementalo. Antes de instalar cualquier cosa o modificar el sistema operativo, pregunta."
 - L2 (2026-10-23) User chose Go; authorized `sudo dnf install golang`; sudo needs a password the agent cannot supply, so the user runs it.
+- L4 (2026-10-23) User: "Ya està completa la instalación de go". Go 1.26.10 confirmed; tidy/vet/build/test run; 4 work-unit commits.
+- L5 (2026-10-23) User approved: install plugin, restart NetworkManager, create the finquers and sailo profiles with nmcli.
 - L3 Evidence: NM spawns `program --bus-name <service>.Connection_<N>` when `supports-multiple-connections=true` (nm-vpn-connection.c:2634). `_config_process_generic` fails without `gateway` (ext gateway); with `has-ip4=false`/`has-ip6=false` `_check_complete` succeeds once generic config is received. `StateChanged(STOPPED)` from the plugin is always mapped to FAILED by NM, hence S4 deactivates through NM instead. IPv4 gateway decoded as native u32 (`_vardict_to_addr`).
