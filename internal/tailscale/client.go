@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 // Package tailscale is a minimal client for the tailscaled LocalAPI over its
 // Unix socket. Only the endpoints the plugin needs are implemented; it never
 // logs out or deletes profiles.

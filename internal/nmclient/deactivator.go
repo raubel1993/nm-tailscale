@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 // Package nmclient contains the small NetworkManager client the plugin needs
 // to deactivate its own connection when tailscaled changes underneath it.
 package nmclient

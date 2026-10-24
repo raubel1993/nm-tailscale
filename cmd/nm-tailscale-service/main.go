@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 // Command nm-tailscale-service is a NetworkManager VPN service plugin that
 // drives tailscaled. NetworkManager starts it with --bus-name and talks to it
 // over the system bus; it exits after the connection stops unless --persist.
@@ -10,6 +12,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/godbus/dbus/v5"
@@ -23,14 +26,15 @@ import (
 func main() {
 	busName := flag.String("bus-name", nmvpn.ServiceName, "D-Bus name to own (NetworkManager passes it)")
 	persist := flag.Bool("persist", false, "do not exit after the connection stops")
-	debug := flag.Bool("debug", false, "verbose logging; do not exit when NetworkManager leaves the bus")
+	debug := flag.Bool("debug", false, "verbose logging and do not exit when NetworkManager leaves the bus")
 	socket := flag.String("socket", tailscale.DefaultSocket, "path to the tailscaled socket")
 	flag.Parse()
 
 	log.SetFlags(0)
 	log.SetPrefix("nm-tailscale-service: ")
+	verbose := *debug || nmLogLevel() >= 7 // NetworkManager passes syslog levels; 7 is LOG_DEBUG.
 	logf := func(format string, args ...any) {
-		if *debug {
+		if verbose {
 			log.Printf(format, args...)
 		}
 	}
@@ -85,6 +89,16 @@ func main() {
 			return
 		}
 	}
+}
+
+// nmLogLevel reads NM_VPN_LOG_LEVEL, the syslog priority NetworkManager
+// exports to VPN plugins (see NetworkManager-dispatcher and nm-vpn-connection.c).
+func nmLogLevel() int {
+	n, err := strconv.Atoi(os.Getenv("NM_VPN_LOG_LEVEL"))
+	if err != nil {
+		return 0
+	}
+	return n
 }
 
 // watchNetworkManager signals once when org.freedesktop.NetworkManager loses

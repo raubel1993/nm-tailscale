@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 // Package nmvpn exposes a service.Service on D-Bus as a NetworkManager VPN
 // plugin (org.freedesktop.NetworkManager.VPN.Plugin).
 package nmvpn

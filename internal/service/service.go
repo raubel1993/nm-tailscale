@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 // Package service holds the plugin's core logic, independent of D-Bus and HTTP.
 // It drives tailscaled through the Backend port and reports to NetworkManager
 // through the Notifier and Deactivator ports.
