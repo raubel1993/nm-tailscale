@@ -1,0 +1,22 @@
+version: "2"
+
+run:
+  go: "1.24"
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    - unconvert
+    - unparam
+    - misspell
+    - errorlint
+    - bodyclose
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+
+formatters:
+  enable:
+    - gofumpt

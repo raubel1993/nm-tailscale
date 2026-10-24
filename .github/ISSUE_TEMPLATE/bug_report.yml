@@ -1,0 +1,69 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Redact tailnet names, account names, IP addresses and tokens before pasting any output.
+        For security issues, use a private security advisory instead of this form.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: nm-tailscale version
+      description: Output of `rpm -q nm-tailscale` or the git tag/commit.
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Environment versions
+      description: |
+        Fedora release, NetworkManager, Tailscale and GNOME Shell versions.
+        For example: `cat /etc/fedora-release; NetworkManager --version; tailscale version; gnome-shell --version`
+    validations:
+      required: true
+  - type: textarea
+    id: nm-log
+    attributes:
+      label: NetworkManager log
+      description: Output of `journalctl -u NetworkManager --since "10 minutes ago"` around the failure.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: avc
+    attributes:
+      label: SELinux denials
+      description: Output of `sudo ausearch -m avc -ts recent` (write "none" if empty).
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: selinux-module
+    attributes:
+      label: SELinux module status
+      description: Output of `getenforce` and `sudo semodule -l | grep nm_tailscale`.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: connection
+    attributes:
+      label: Connection settings
+      description: Output of `nmcli -f vpn connection show <name>` with the tailnet and account names redacted.
+      render: text
+    validations:
+      required: false

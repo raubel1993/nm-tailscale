@@ -1,0 +1,9 @@
+* text=auto eol=lf
+*.go text eol=lf diff=golang
+*.pp binary
+
+# Keep release tarballs free of development-only files.
+.github/ export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+odd/ export-ignore
