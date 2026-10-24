@@ -1,4 +1,4 @@
-module nm-tailscale-service
+module nm-tailscale
 
 go 1.24
 

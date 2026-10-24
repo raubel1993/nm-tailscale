@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"nm-tailscale-service/internal/tailscale"
+	"nm-tailscale/internal/tailscale"
 )
 
 // NetworkManager VPN service states (NMVpnServiceState).

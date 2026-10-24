@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"nm-tailscale-service/internal/tailscale"
+	"nm-tailscale/internal/tailscale"
 )
 
 // fakeBackend is an in-memory tailscaled.

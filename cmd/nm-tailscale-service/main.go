@@ -14,10 +14,10 @@ import (
 
 	"github.com/godbus/dbus/v5"
 
-	"nm-tailscale-service/internal/nmclient"
-	"nm-tailscale-service/internal/nmvpn"
-	"nm-tailscale-service/internal/service"
-	"nm-tailscale-service/internal/tailscale"
+	"nm-tailscale/internal/nmclient"
+	"nm-tailscale/internal/nmvpn"
+	"nm-tailscale/internal/service"
+	"nm-tailscale/internal/tailscale"
 )
 
 func main() {

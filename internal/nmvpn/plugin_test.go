@@ -9,7 +9,7 @@ import (
 
 	"github.com/godbus/dbus/v5"
 
-	"nm-tailscale-service/internal/service"
+	"nm-tailscale/internal/service"
 )
 
 type fakeCore struct {
