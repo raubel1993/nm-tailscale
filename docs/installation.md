@@ -58,7 +58,7 @@ Fedora installs by default.
 ## 2. Get the source and build
 
 ```sh
-git clone https://github.com/OWNER/nm-tailscale.git
+git clone https://github.com/raubel1993/nm-tailscale.git
 cd nm-tailscale
 make build
 ```

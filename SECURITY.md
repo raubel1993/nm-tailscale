@@ -7,7 +7,7 @@ Only the latest released version receives security fixes.
 ## Reporting a vulnerability
 
 Report vulnerabilities privately through GitHub Security Advisories:
-<https://github.com/OWNER/nm-tailscale/security/advisories/new>
+<https://github.com/raubel1993/nm-tailscale/security/advisories/new>
 
 Do not open a public issue or pull request for a suspected vulnerability.
 Include the affected version, a description of the impact and, if possible,

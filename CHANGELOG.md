@@ -22,4 +22,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RPM spec for COPR builds, GitHub Actions CI and tag-triggered release
   workflow.
 
-[Unreleased]: https://github.com/OWNER/nm-tailscale/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/raubel1993/nm-tailscale/compare/v0.1.0...HEAD

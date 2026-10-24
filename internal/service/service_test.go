@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"nm-tailscale/internal/tailscale"
+	"github.com/raubel1993/nm-tailscale/internal/tailscale"
 )
 
 // fakeBackend is an in-memory tailscaled.

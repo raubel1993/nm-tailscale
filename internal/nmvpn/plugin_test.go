@@ -11,7 +11,7 @@ import (
 
 	"github.com/godbus/dbus/v5"
 
-	"nm-tailscale/internal/service"
+	"github.com/raubel1993/nm-tailscale/internal/service"
 )
 
 type fakeCore struct {

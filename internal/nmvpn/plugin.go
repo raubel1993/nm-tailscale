@@ -14,7 +14,7 @@ import (
 	"github.com/godbus/dbus/v5"
 	"github.com/godbus/dbus/v5/prop"
 
-	"nm-tailscale/internal/service"
+	"github.com/raubel1993/nm-tailscale/internal/service"
 )
 
 const (

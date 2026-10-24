@@ -1,4 +1,4 @@
-module nm-tailscale
+module github.com/raubel1993/nm-tailscale
 
 go 1.24
 

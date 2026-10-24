@@ -17,10 +17,10 @@ import (
 
 	"github.com/godbus/dbus/v5"
 
-	"nm-tailscale/internal/nmclient"
-	"nm-tailscale/internal/nmvpn"
-	"nm-tailscale/internal/service"
-	"nm-tailscale/internal/tailscale"
+	"github.com/raubel1993/nm-tailscale/internal/nmclient"
+	"github.com/raubel1993/nm-tailscale/internal/nmvpn"
+	"github.com/raubel1993/nm-tailscale/internal/service"
+	"github.com/raubel1993/nm-tailscale/internal/tailscale"
 )
 
 func main() {

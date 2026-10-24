@@ -1,6 +1,6 @@
 # nm-tailscale
 
-[![CI](https://github.com/OWNER/nm-tailscale/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/nm-tailscale/actions/workflows/ci.yml)
+[![CI](https://github.com/raubel1993/nm-tailscale/actions/workflows/ci.yml/badge.svg)](https://github.com/raubel1993/nm-tailscale/actions/workflows/ci.yml)
 [![License: GPL-2.0-or-later](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](LICENSE)
 
 A NetworkManager VPN service plugin for Tailscale. Each Tailscale account
@@ -58,7 +58,7 @@ looks like this:
 
 ```sh
 sudo dnf install golang make checkpolicy policycoreutils
-git clone https://github.com/OWNER/nm-tailscale.git
+git clone https://github.com/raubel1993/nm-tailscale.git
 cd nm-tailscale
 make build test
 sudo make install
