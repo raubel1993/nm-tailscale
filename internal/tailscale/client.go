@@ -180,7 +180,7 @@ func (c *Client) Watch(ctx context.Context) (<-chan Event, error) {
 	}
 	// Streaming: no overall timeout; the context ends the watch.
 	stream := &http.Client{Transport: c.http.Transport}
-	resp, err := stream.Do(req)
+	resp, err := stream.Do(req) //nolint:bodyclose // closed by the reader goroutine or on the error path below
 	if err != nil {
 		return nil, err
 	}

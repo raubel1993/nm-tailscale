@@ -4,6 +4,7 @@ package nmvpn
 
 import (
 	"context"
+	"errors"
 	"os"
 	"sync"
 	"testing"
@@ -27,6 +28,7 @@ func (f *fakeCore) Connect(_ context.Context, s service.Settings) error {
 	f.set = s
 	return f.err
 }
+
 func (f *fakeCore) Disconnect(context.Context) error {
 	f.mu.Lock()
 	f.disc++
@@ -184,8 +186,8 @@ func TestConnectErrorsMapToNMErrorNames(t *testing.T) {
 		t.Fatal(err)
 	}
 	call := client.Object(name, Path).Call(Interface+".Connect", 0, connDict("x", "", "u"))
-	dbErr, ok := call.Err.(dbus.Error)
-	if !ok || dbErr.Name != errPrefix+"BadArguments" {
+	var dbErr dbus.Error
+	if !errors.As(call.Err, &dbErr) || dbErr.Name != errPrefix+"BadArguments" {
 		t.Fatalf("got %v", call.Err)
 	}
 }

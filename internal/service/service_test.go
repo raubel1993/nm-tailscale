@@ -43,6 +43,7 @@ func (b *fakeBackend) Profiles(context.Context) ([]tailscale.Profile, error) {
 	b.record("profiles")
 	return b.profiles, nil
 }
+
 func (b *fakeBackend) CurrentProfile(context.Context) (tailscale.Profile, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -53,6 +54,7 @@ func (b *fakeBackend) CurrentProfile(context.Context) (tailscale.Profile, error)
 	}
 	return tailscale.Profile{}, errors.New("no current")
 }
+
 func (b *fakeBackend) SwitchProfile(_ context.Context, id string) error {
 	b.record("switch:" + id)
 	b.mu.Lock()
@@ -60,6 +62,7 @@ func (b *fakeBackend) SwitchProfile(_ context.Context, id string) error {
 	b.mu.Unlock()
 	return nil
 }
+
 func (b *fakeBackend) SetWantRunning(_ context.Context, on bool) error {
 	if on {
 		b.record("up")
@@ -77,22 +80,26 @@ func (b *fakeBackend) SetWantRunning(_ context.Context, on bool) error {
 	b.mu.Unlock()
 	return nil
 }
+
 func (b *fakeBackend) Prefs(context.Context) (tailscale.Prefs, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return tailscale.Prefs{WantRunning: b.wantRunning}, nil
 }
+
 func (b *fakeBackend) Status(context.Context) (tailscale.Status, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return tailscale.Status{BackendState: b.state, TailscaleIPs: b.ips}, nil
 }
+
 func (b *fakeBackend) Watch(context.Context) (<-chan tailscale.Event, error) {
 	if b.watchErr != nil {
 		return nil, b.watchErr
 	}
 	return b.events, nil
 }
+
 func (b *fakeBackend) has(call string) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -125,6 +132,7 @@ func (n *fakeNotifier) Failure(r uint32) {
 	n.failures = append(n.failures, r)
 	n.mu.Unlock()
 }
+
 func (n *fakeNotifier) waitState(t *testing.T, want uint32) {
 	t.Helper()
 	deadline := time.After(3 * time.Second)
@@ -262,8 +270,10 @@ func TestTimeoutReportsConnectFailed(t *testing.T) {
 
 func TestMissingInterfaceAddressReportsBadIPConfig(t *testing.T) {
 	b, n, d := newBackend(), newNotifier(), newDeactivator()
-	s := New(b, n, d, Options{ConnectTimeout: 300 * time.Millisecond, PollInterval: 10 * time.Millisecond,
-		InterfaceAddrs: func(string) ([]netip.Addr, error) { return nil, nil }, Logf: func(string, ...any) {}})
+	s := New(b, n, d, Options{
+		ConnectTimeout: 300 * time.Millisecond, PollInterval: 10 * time.Millisecond,
+		InterfaceAddrs: func(string) ([]netip.Addr, error) { return nil, nil }, Logf: func(string, ...any) {},
+	})
 	if err := s.Connect(context.Background(), set); err != nil {
 		t.Fatal(err)
 	}

@@ -155,7 +155,7 @@ func dbusError(err error) *dbus.Error {
 func (p *Plugin) Connect(conn map[string]map[string]dbus.Variant) *dbus.Error {
 	set, err := SettingsFromConnection(conn)
 	if err != nil {
-		return dbusError(fmt.Errorf("%w: %v", service.ErrBadArguments, err))
+		return dbusError(fmt.Errorf("%w: %w", service.ErrBadArguments, err))
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
 	defer cancel()

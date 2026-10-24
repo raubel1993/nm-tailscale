@@ -39,7 +39,7 @@ func newFake(t *testing.T) (*fakeDaemon, *Client) {
 	}
 	f := &fakeDaemon{t: t, bodies: map[string]string{}, hold: make(chan struct{})}
 	srv := &http.Server{Handler: f}
-	go srv.Serve(ln)
+	go func() { _ = srv.Serve(ln) }()
 	t.Cleanup(func() { close(f.hold); srv.Close() })
 	return f, New(sock)
 }
