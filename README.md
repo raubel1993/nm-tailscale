@@ -89,14 +89,23 @@ Activate from the GNOME menu or with `nmcli connection up "Tailscale sailo"`.
 
 ## SELinux (Fedora)
 
-NetworkManager runs confined. After the first activation, check for denials:
+NetworkManager runs confined as `NetworkManager_t`, and the plugin inherits
+that domain. Fedora's policy does not let it reach the tailscaled socket, so
+the first activation fails with `connect: permission denied`. A small module
+in `data/selinux/nm-tailscale.te` grants exactly the two accesses needed:
+
+```
+make selinux               # compiles bin/nm_tailscale.pp without privileges
+sudo make install-selinux  # loads it (semodule -i)
+```
+
+To check for further denials after an activation:
 
 ```
 sudo ausearch -m avc -ts recent
 ```
 
-If the plugin is denied access to the tailscaled socket, build a small local
-policy module from the denials instead of disabling enforcement.
+Do not disable enforcement; extend the module instead.
 
 ## Limitations
 
