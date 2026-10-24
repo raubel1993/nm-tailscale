@@ -23,7 +23,8 @@ Engram mirror: pending (server unavailable this session).
 - [x] T4 (S7,S8) data files, Makefile, README — inline — 8080c8e — structural readback
 - [x] T5 `go vet`, `go test ./...`, `make build` — ok on go1.26.10; `-race` run pending (background)
 - [x] T6 independent verification (Risk: item 2 root plugin on system bus, item 5 installs) — delegated verifier — no blockers; advisories A2 (double close), A3 (spurious Failure on cancel), A4 (core swap race), A5 (no HTTP timeout) fixed in f5c3361 with regression tests; A1 (send_destination vs .Connection_N) mitigated with send_destination_prefix. `go test -race ./...`: ok.
-- [ ] T7 install (`sudo make install`, `systemctl restart NetworkManager`), create 2 nmcli profiles, Fase 5 scenarios, SELinux check — user approved (L5); sudo needs an interactive password, so the user runs install and NM restart, then the agent continues
+- [x] T7 install + profiles + first activation — user ran `sudo make install` and NM restart; `nmcli connection add` x2 ok; first `connection up` failed with AVC `NetworkManager_t -> var_run_t sock_file write` (RED); module `data/selinux/nm-tailscale.te` (aec6787) loaded by user; second `connection up`: "Conexión activada con éxito", `tailscale status` Running, no new AVC (GREEN). `tailscale down` from terminal: plugin logged "profile switched or stopped outside NetworkManager; deactivating <uuid>", NM removed the VPN from active list, plugin exited, no failure (S4 GREEN).
+- [ ] T8 remaining Fase 5 scenarios, user-driven: activate from GNOME menu, switch finquers -> sailo, reboot persistence. Not run by the agent (user asked not to disturb the network).
 
 ## Log
 
@@ -31,4 +32,5 @@ Engram mirror: pending (server unavailable this session).
 - L2 (2026-10-23) User chose Go; authorized `sudo dnf install golang`; sudo needs a password the agent cannot supply, so the user runs it.
 - L4 (2026-10-23) User: "Ya està completa la instalación de go". Go 1.26.10 confirmed; tidy/vet/build/test run; 4 work-unit commits.
 - L5 (2026-10-23) User approved: install plugin, restart NetworkManager, create the finquers and sailo profiles with nmcli.
+- L6 (2026-10-23) User: "Ya lo instalé. No cortes la conexión haciendo pruebas" / "ya está" (SELinux module loaded). Observation: on activation, tailscaled pushed MagicDNS as default DNS route (`~.` on tailscale0, resolvectl) because the finquers tailnet overrides DNS; this is tailscaled behaviour, not the plugin's, and it coexisted with WireGuard ASUS-PC (both stayed active).
 - L3 Evidence: NM spawns `program --bus-name <service>.Connection_<N>` when `supports-multiple-connections=true` (nm-vpn-connection.c:2634). `_config_process_generic` fails without `gateway` (ext gateway); with `has-ip4=false`/`has-ip6=false` `_check_complete` succeeds once generic config is received. `StateChanged(STOPPED)` from the plugin is always mapped to FAILED by NM, hence S4 deactivates through NM instead. IPv4 gateway decoded as native u32 (`_vardict_to_addr`).
