@@ -1,19 +1,37 @@
-# nm-tailscale-service
+# nm-tailscale
 
-NetworkManager VPN service plugin for Tailscale. Each Tailscale account
-becomes an ordinary NetworkManager `vpn` connection, so it shows up in the
-GNOME system menu and in Settings → Network → VPN, next to WireGuard and
-OpenVPN profiles, with no desktop extension.
+[![CI](https://github.com/OWNER/nm-tailscale/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/nm-tailscale/actions/workflows/ci.yml)
+[![License: GPL-2.0-or-later](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](LICENSE)
 
-The plugin only tells `tailscaled` which profile to run and whether the
-tunnel should be up. `tailscaled` keeps owning the interface, routes and DNS.
-NetworkManager's behaviour is extended, not replaced.
+A NetworkManager VPN service plugin for Tailscale. Each Tailscale account
+(login profile) becomes an ordinary NetworkManager `vpn` connection, so it
+appears in GNOME's VPN quick-settings menu and in Settings → Network → VPN,
+next to your WireGuard and OpenVPN connections, with no desktop extension.
+The plugin only tells `tailscaled` which profile to run and whether the tunnel
+should be up; `tailscaled` keeps owning the `tailscale0` interface, routes and
+DNS. NetworkManager's behaviour is extended, not replaced.
+
+> **Status:** 0.1.0, pre-release. Verified on Fedora 44 with GNOME 50,
+> NetworkManager 1.56 and Tailscale 1.98. Other distributions are untested.
+
+## Why
+
+Tailscale on Linux is driven from the `tailscale` CLI or a third-party tray
+or shell extension. Desktop users already have one place to turn VPNs on and
+off: NetworkManager. This plugin puts Tailscale there, so that:
+
+- each account is a named connection you can toggle from the system menu or
+  with `nmcli connection up|down`;
+- switching between several tailnets is a matter of activating another
+  connection;
+- no GNOME Shell extension is required, and nothing changes in how
+  `tailscaled` manages the network.
 
 ## How it works
 
-NetworkManager starts `/usr/libexec/nm-tailscale-service --bus-name
-org.freedesktop.NetworkManager.tailscale.Connection_N` on the system bus and
-calls `Connect` with the connection settings. The plugin then uses the
+NetworkManager starts `/usr/libexec/nm-tailscale-service` on the system bus
+(as `org.freedesktop.NetworkManager.tailscale.Connection_N`) and calls
+`Connect` with the connection settings. The plugin then talks to the
 `tailscaled` LocalAPI over `/var/run/tailscale/tailscaled.sock`:
 
 | Step | LocalAPI call |
@@ -21,106 +39,122 @@ calls `Connect` with the connection settings. The plugin then uses the
 | Resolve `vpn.data profile` | `GET profiles/` |
 | Switch account if needed | `GET profiles/current`, `POST profiles/<id>` |
 | Bring the tunnel up | `PATCH prefs {"WantRunningSet":true,"WantRunning":true}` |
-| Wait for `Running` (30 s) | `GET status?peers=false` |
+| Wait for `Running` (up to 30 s) | `GET status?peers=false` |
 | Follow external changes | `GET watch-ipn-bus?mask=0` |
 | Disconnect | `PATCH prefs {"WantRunningSet":true,"WantRunning":false}` |
 
-It never calls `logout` and never deletes profiles. No secrets are stored in
-NetworkManager; authentication stays with `tailscale login`.
+If you run `tailscale down` or `tailscale switch` from a terminal while the
+connection is active, the plugin asks NetworkManager to deactivate its
+connection, so the UI shows a clean disconnect rather than a failure.
 
-If you run `tailscale down` or `tailscale switch` from a terminal, the plugin
-asks NetworkManager to deactivate its connection, so the UI shows a clean
-disconnect rather than a failure.
+See [docs/architecture.md](docs/architecture.md) for the D-Bus contract and
+state machine.
 
-## Build and test
+## Quick start
 
-Requires Go (Fedora: `sudo dnf install golang`).
+Full, step-by-step instructions are in
+[docs/installation.md](docs/installation.md). On Fedora, building from source
+looks like this:
 
-```
-make build        # bin/nm-tailscale-service
-make test         # unit tests (no bus needed)
-make test-dbus    # D-Bus adapter tests under dbus-run-session
-```
-
-## Install
-
-Installation changes the system: it adds a NetworkManager plugin
-descriptor, a D-Bus policy and a root-run binary.
-
-```
+```sh
+sudo dnf install golang make checkpolicy policycoreutils
+git clone https://github.com/OWNER/nm-tailscale.git
+cd nm-tailscale
+make build test
 sudo make install
-sudo systemctl restart NetworkManager
+make selinux && sudo make install-selinux   # Fedora / SELinux enforcing
+sudo systemctl restart NetworkManager       # brief network interruption
 ```
 
-Files installed:
+Fedora package: see `packaging/` (COPR repository to be announced).
 
-- `/usr/libexec/nm-tailscale-service`
-- `/usr/lib/NetworkManager/VPN/nm-tailscale-service.name`
-- `/usr/share/dbus-1/system.d/nm-tailscale-service.conf`
+`tailscaled` must already be installed and each account logged in once with
+`tailscale login`.
 
-NetworkManager only reads `.name` files from `lib/`, never `lib64/`.
+## Usage
 
-## Create connections
+List your Tailscale accounts:
 
-Find your accounts first:
-
-```
+```sh
 tailscale switch --list
 ```
 
-Then add one connection per account. `profile` accepts the profile ID, the
-login name, the user-visible name or the tailnet domain:
+Create one NetworkManager connection per account:
 
-```
+```sh
 nmcli connection add type vpn vpn-type tailscale con-name "Tailscale sailo" \
   vpn.data profile=vpn.sailo.ag vpn.persistent yes
-nmcli connection add type vpn vpn-type tailscale con-name "Tailscale finquers" \
-  vpn.data profile=vpn.finquers.com vpn.persistent yes
 ```
 
-Optional: `vpn.data "profile=...,interface=tailscale0"` when the tunnel device
-has another name. To restrict a profile to your user:
+`profile` accepts the profile ID, the user-visible name, the login name or the
+tailnet domain. Then activate it from the GNOME VPN menu, or:
 
-```
-nmcli connection modify "Tailscale sailo" connection.permissions user:$USER
-```
-
-Activate from the GNOME menu or with `nmcli connection up "Tailscale sailo"`.
-
-## SELinux (Fedora)
-
-NetworkManager runs confined as `NetworkManager_t`, and the plugin inherits
-that domain. Fedora's policy does not let it reach the tailscaled socket, so
-the first activation fails with `connect: permission denied`. A small module
-in `data/selinux/nm-tailscale.te` grants exactly the two accesses needed:
-
-```
-make selinux               # compiles bin/nm_tailscale.pp without privileges
-sudo make install-selinux  # loads it (semodule -i)
+```sh
+nmcli connection up "Tailscale sailo"
+nmcli connection down "Tailscale sailo"
 ```
 
-To check for further denials after an activation:
+There is no GNOME connection editor for this plugin: GNOME Settings shows the
+on/off toggle, but profiles are created and edited with `nmcli`. All keys,
+permissions and DNS behaviour are described in
+[docs/configuration.md](docs/configuration.md).
 
-```
-sudo ausearch -m avc -ts recent
-```
+## Security
 
-Do not disable enforcement; extend the module instead.
+Read this before installing; the plugin runs as root.
+
+- NetworkManager spawns the plugin as root. Any user that polkit allows to
+  use `org.freedesktop.NetworkManager.network-control` (by default, users in
+  an active local session; the same rule that applies to the OpenVPN plugin)
+  can activate or deactivate Tailscale connections. Non-root users therefore
+  do not need `tailscale set --operator`. Use `connection.permissions` to
+  restrict a connection to specific users.
+- No secrets are stored in or requested by NetworkManager (`NeedSecrets`
+  always reports none). Authentication stays with `tailscale login`.
+- Only the LocalAPI endpoints listed above are used. The plugin never logs
+  out and never deletes profiles.
+- `vpn.data` values are validated and are never passed to a shell or used to
+  build file paths.
+- The D-Bus policy only lets root own the plugin's bus names.
+- The optional SELinux module grants exactly two accesses to
+  `NetworkManager_t`: write to the `tailscaled` socket file and connect to the
+  `tailscaled` process.
 
 ## Limitations
 
-- No GNOME connection editor plugin: create and edit profiles with `nmcli`.
-  GNOME can still activate and deactivate them.
-- `tailscaled` runs one profile at a time. Activating a second Tailscale
-  connection switches profiles and the first connection is deactivated.
-- Kernel mode only (`tailscale0` must exist). Userspace networking is not
-  supported.
-- Exclusivity with WireGuard or OpenVPN connections is not enforced; you can
-  have several VPNs active, with the DNS and routing consequences that implies.
-- The plugin runs as root and is reachable by any user who may activate
-  connections (`org.freedesktop.NetworkManager.network-control`). Values from
-  `vpn.data` are validated and never passed to a shell.
+- **Kernel mode only.** The `tailscale0` tun device must exist; `tailscaled`
+  in userspace-networking mode is not supported.
+- **One account at a time.** `tailscaled` runs one profile at a time.
+  Activating a second Tailscale connection switches accounts, and the plugin
+  deactivates the first connection.
+- **No VPN exclusivity.** Neither NetworkManager nor the plugin prevents a
+  Tailscale connection from being active together with WireGuard or OpenVPN
+  connections. DNS and routing conflicts between them are yours to manage.
+- **DNS is decided by tailscaled.** If your tailnet overrides DNS, MagicDNS
+  becomes the default DNS route while connected. See
+  [docs/configuration.md](docs/configuration.md#dns-and-routes).
+- **No GNOME editor plugin.** Create and edit connections with `nmcli`.
+- **Fedora-first.** Paths and the SELinux module target Fedora; other
+  distributions may need adjustments.
+
+## Documentation
+
+- [Installation](docs/installation.md): prerequisites, build, install,
+  SELinux, upgrade and uninstall.
+- [Configuration](docs/configuration.md): connection keys, account
+  selection, permissions, DNS and routes.
+- [Troubleshooting](docs/troubleshooting.md): symptoms, causes, fixes and
+  how to collect logs.
+- [Architecture](docs/architecture.md): components, D-Bus contract, state
+  machine and test strategy.
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md)
+before opening an issue or pull request. Run `make test` and `make test-dbus`
+before submitting changes.
 
 ## License
 
-GPL-2.0-or-later, like the NetworkManager VPN plugins it follows.
+GPL-2.0-or-later, like the NetworkManager VPN plugins it follows. See
+[LICENSE](LICENSE).
